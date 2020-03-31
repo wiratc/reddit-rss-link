@@ -1,30 +1,31 @@
-let Parser = require('rss-parser');
-let parser = new Parser();
+const Parser = require('rss-parser');
+const RSS = require('rss');
+const parser = new Parser();
 
-var RSS = require('rss');
+const re = /https?:\/\/(?!(www.reddit))[^"]*/g;
 
 exports.handler = async (event) => {
-
-    
     const sub = event.queryStringParameters.sub;
-    let feed = await parser.parseURL(`https://www.reddit.com/r/${sub}.rss`);
-    var newFeed = new RSS(feed);
+    const feed = await parser.parseURL(`https://www.reddit.com/r/${sub}.rss`);
+    const newFeed = new RSS(feed);
 
-    let i = []
-    let re = /https?:\/\/(?!(www.reddit))[^\"]*/g;
+
     feed.items.forEach(item => {
-        let url = item.content.match(re);
-        if (url == null) return;
-        item.url = url[0];
+        const matched = item.content.match(re);
+
+        if (!matched) {
+            return;
+        }
+
+        item.url = matched[0];
         newFeed.item(item);
     });
 
-    const response = {
+    return {
         statusCode: 200,
         headers: {
             "Content-Type": "text/xml"
         },
         body: newFeed.xml(),
     };
-    return response;
 };
